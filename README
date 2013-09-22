@@ -22,9 +22,9 @@ redmine actions:
 
 * issue: create redmine issue
 ** required arguments:
-*** --description
-*** --subject
 *** --tracker
+*** --subject
+*** --description
 ** optional arguments:
 *** --parent-issue
 *** --file-name

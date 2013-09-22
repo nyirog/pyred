@@ -86,9 +86,9 @@ class Redmine(Browser):
        '  *** --file-desc\n'\
        '  * issue: create redmine issue\n'\
        '  ** required arguments:\n'\
-       '  *** --description\n'\
-       '  *** --subject\n'\
        '  *** --tracker\n'\
+       '  *** --subject\n'\
+       '  *** --description\n'\
        '  ** optional arguments:\n'\
        '  *** --parent-issue\n'\
        '  *** --file-name\n'\
