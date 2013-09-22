@@ -1,12 +1,15 @@
+import re
+import argparse
 
-from mechanize import Browser
+from mechanize import Browser, urlopen
 
 class Redmine(Browser):
-    def __init__(self, url):
+    def __init__(self, url, trackers=None):
         Browser.__init__(self)
         self.addheaders = [('User-agent', 'Firefox')]
 
         self._url = url
+        self.trackers = trackers or {'Bug': 1, 'Feature': 2, 'Support': 3}
         return
 
     def login(self, login, password):
@@ -17,30 +20,78 @@ class Redmine(Browser):
         self.submit()
         return
 
-    def upload_project_file(self, project, filename, description=''):
-        resp = self.open('%s/projects/%s/files/new' % (self._url, project))
-        self.form = list(self.forms())[1]
+    def upload_project_file(self, project, filename, file_desc=''):
+        url = '%s/projects/%s/files/new' % (self._url, project)
+        self._upload_file(url, filename, file_desc)
+        return
+
+    def upload_issue_file(self, issue, filename, file_desc=''):
+        url = '%s/issues/%d' % (self._url, issue)
+        self._upload_file(url, filename, file_desc)
+        return
+
+    def _upload_file(self, url, filename, file_desc):
+        resp = self.open(url)
+        self.form = self._find_for_by_control_names({'attachments[1][file]'})
         self.form.add_file(open(filename), 'text/plain', filename,
                          name='attachments[1][file]')
-        self['attachments[1][description]'] = description
+        self['attachments[1][description]'] = file_desc
         self.submit()
         return
 
+    def _find_for_by_control_names(self, control_names):
+        for form in self.forms():
+            names = control_names - set(ctrl.name for ctrl in form.controls)
+            if not names: return form
+        raise ValueError('Invaliad forms no %s action' % control_name)
+
+    def create_issue(self, project, subject, description, tracker,
+                     parent_issue):
+        url = '%s/projects/%s/issues/new' % (self._url, project)
+        resp = self.open(url)
+        self.form = self._find_for_by_control_names({'issue[tracker_id]'})
+        self['issue[subject]'] = subject
+        self['issue[description]'] = description
+        self.form['issue[tracker_id]'] = [str(self.trackers[tracker])]
+        if isinstance(parent_issue, int):
+            self['issue[parent_issue_id]'] = str(parent_issue)
+
+        resp = self.submit()
+        match = re.search('<title>%s\\s+#(\\d+):.+</title>' % tracker,
+                          resp.read())
+        issue = int(match.group(1))
+        return issue
+
+    @classmethod
+    def create_parser(cls):
+        parser = argparse.ArgumentParser(description="""
+        redmine wrapper written in python with mechanize
+        """)
+        parser.add_argument('url', help='url of the redmine server')
+        parser.add_argument('command', help='redmine action',
+                            choices={'upload', 'upload-issue', 'issue'})
+        parser.add_argument('-p', '--project',
+                            help='name of the redmine project')
+        parser.add_argument('--login')
+        parser.add_argument('--password')
+        parser.add_argument('--file-name', action='append', default=[])
+        parser.add_argument('--file-desc', action='append', default=[])
+        parser.add_argument('--issue', type=int)
+        parser.add_argument('--description')
+        parser.add_argument('--subject')
+        parser.add_argument('--tracker', choices=cls.trackers.keys())
+        parser.add_argument('--parent-issue', type=int)
+        return parser
+
+    @staticmethod
+    def fit_file_desc(file_descs, file_names):
+        return file_descs or ['' for name in file_names]
+
+
 if __name__ == '__main__':
     import getpass
-    import argparse
 
-    parser = argparse.ArgumentParser(description="""
-    redmine wrapper written in python with mechanize
-    """)
-    parser.add_argument('url', help='url of the redmine server')
-    parser.add_argument('project', help='name of the redmine project')
-    parser.add_argument('--login')
-    parser.add_argument('--password')
-    parser.add_argument('--file-name')
-    parser.add_argument('--file-desc', default='')
-    parser.add_argument('--issue', type=int)
-
+    parser = Redmine.create_parser()
     args = parser.parse_args()
 
     if args.login is None:
@@ -54,7 +105,33 @@ if __name__ == '__main__':
 
     redmine = Redmine(args.url)
     redmine.login(args.login, args.password)
-    if args.file_name is not None and args.issue is None:
-        redmine.upload_project_file(args.project, args.file_name,
-                                    args.file_desc)
+    if args.command == 'upload':
+        assert args.project is not None, 'project has to be set'
+        assert args.file_name, 'file-name has to be set'
+
+        file_descs = Redmine.fit_file_desc(args.file_desc, args.file_name)
+        for file_name, file_desc in zip(args.file_name, file_descs):
+            redmine.upload_project_file(args.project, file_name, file_desc)
+    elif args.command == 'upload-issue':
+        assert args.issue is not None, 'issue has to be set'
+        assert args.file_name, 'file-name has to be set'
+
+        file_descs = Redmine.fit_file_desc(args.file_desc, args.file_name)
+        for file_name, file_desc in zip(args.file_name, file_descs):
+            redmine.upload_issue_file(args.issue, file_name, file_desc)
+    elif args.command == 'issue':
+        assert args.project is not None, 'project has to be set'
+        assert args.subject is not None, 'subject has to be set'
+        assert args.description is not None, 'description has to be set'
+        assert args.tracker is not None, 'tracker has to be set'
+
+        issue = redmine.create_issue(args.project, args.subject,
+                                     args.description, args.tracker,
+                                     args.parent_issue)
+        file_descs = Redmine.fit_file_desc(args.file_desc, args.file_name)
+        for file_name, file_desc in zip(args.file_name, file_descs):
+            redmine.upload_issue_file(issue, file_name, file_desc)
+        print issue
+    else:
+        pass
 

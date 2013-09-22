@@ -5,10 +5,7 @@ setup(
     name='pyred',
     version='0.1.0',
     description='redmine wrapper with mechanize',
-    long_description='''
-    pyred offers redmine module to run automatic action on redmine project
-    hosting server
-    ''',
+    long_description=open('README').read(),
     author=u'Nyirő Gergő',
     author_email='gergo.nyiro@gmail.com',
     package_dir={'': 'src'},
