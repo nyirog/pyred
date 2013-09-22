@@ -1,15 +1,16 @@
 import re
-import argparse
+from argparse import ArgumentParser, RawTextHelpFormatter
 
 from mechanize import Browser, urlopen
 
 class Redmine(Browser):
+    trackers = {'Bug': 1, 'Feature': 2, 'Support': 3}
     def __init__(self, url, trackers=None):
         Browser.__init__(self)
         self.addheaders = [('User-agent', 'Firefox')]
 
         self._url = url
-        self.trackers = trackers or {'Bug': 1, 'Feature': 2, 'Support': 3}
+        self.trackers = trackers or Redmine.trackers
         return
 
     def login(self, login, password):
@@ -32,14 +33,14 @@ class Redmine(Browser):
 
     def _upload_file(self, url, filename, file_desc):
         resp = self.open(url)
-        self.form = self._find_for_by_control_names({'attachments[1][file]'})
+        self.form = self._find_form_by_control_names({'attachments[1][file]'})
         self.form.add_file(open(filename), 'text/plain', filename,
                          name='attachments[1][file]')
         self['attachments[1][description]'] = file_desc
         self.submit()
         return
 
-    def _find_for_by_control_names(self, control_names):
+    def _find_form_by_control_names(self, control_names):
         for form in self.forms():
             names = control_names - set(ctrl.name for ctrl in form.controls)
             if not names: return form
@@ -49,7 +50,7 @@ class Redmine(Browser):
                      parent_issue):
         url = '%s/projects/%s/issues/new' % (self._url, project)
         resp = self.open(url)
-        self.form = self._find_for_by_control_names({'issue[tracker_id]'})
+        self.form = self._find_form_by_control_names({'issue[tracker_id]'})
         self['issue[subject]'] = subject
         self['issue[description]'] = description
         self.form['issue[tracker_id]'] = [str(self.trackers[tracker])]
@@ -64,12 +65,34 @@ class Redmine(Browser):
 
     @classmethod
     def create_parser(cls):
-        parser = argparse.ArgumentParser(description="""
+        parser = ArgumentParser(formatter_class=RawTextHelpFormatter,
+                                description="""
         redmine wrapper written in python with mechanize
         """)
         parser.add_argument('url', help='url of the redmine server')
-        parser.add_argument('command', help='redmine action',
-                            choices={'upload', 'upload-issue', 'issue'})
+        parser.add_argument('command', 
+                            choices={'upload', 'upload-issue', 'issue'},
+                            help=\
+       'redmine actions:\n'\
+       '  * upload: upload a file to the project\n'\
+       '  ** required arguments:\n'\
+       '  *** --file-name\n'\
+       '  ** optional arguments:\n'\
+       '  *** --file-desc\n'\
+       '  * upload-issue: upload a file to the issue\n'\
+       '  ** required arguments:\n'\
+       '  *** --file-name\n'\
+       '  ** optional arguments:\n'\
+       '  *** --file-desc\n'\
+       '  * issue: create redmine issue\n'\
+       '  ** required arguments:\n'\
+       '  *** --description\n'\
+       '  *** --subject\n'\
+       '  *** --tracker\n'\
+       '  ** optional arguments:\n'\
+       '  *** --parent-issue\n'\
+       '  *** --file-name\n'\
+       '  *** --file-desc\n')
         parser.add_argument('-p', '--project',
                             help='name of the redmine project')
         parser.add_argument('--login')

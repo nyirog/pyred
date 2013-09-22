@@ -1,2 +1,32 @@
 pyred offers redmine module to run automatic action on redmine project hosting
 server.
+
+redmine can be run as a scripts
+$ python src/redmine
+
+or as python module after installation
+$ python -m redmine
+
+redmine actions:
+* upload: upload a file to the project
+** required arguments:
+*** --file-name
+** optional arguments:
+*** --file-desc
+
+* upload-issue: upload a file to the issue
+** required arguments:
+*** --file-name
+** optional arguments:
+*** --file-desc
+
+* issue: create redmine issue
+** required arguments:
+*** --description
+*** --subject
+*** --tracker
+** optional arguments:
+*** --parent-issue
+*** --file-name
+*** --file-desc
+

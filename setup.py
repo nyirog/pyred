@@ -8,6 +8,7 @@ setup(
     long_description=open('README').read(),
     author=u'Nyirő Gergő',
     author_email='gergo.nyiro@gmail.com',
+    url='https://github.com/nyirog/pyred',
     package_dir={'': 'src'},
     py_modules=['redmine'],
     requires=['mechanize'],
