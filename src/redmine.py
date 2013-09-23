@@ -69,41 +69,40 @@ class Redmine(Browser):
                                 description="""
         redmine wrapper written in python with mechanize
         """)
-        parser.add_argument('url', help='url of the redmine server')
-        parser.add_argument('command', 
-                            choices={'upload', 'upload-issue', 'issue'},
-                            help=\
-       'redmine actions:\n'\
-       '  * upload: upload a file to the project\n'\
-       '  ** required arguments:\n'\
-       '  *** --file-name\n'\
-       '  ** optional arguments:\n'\
-       '  *** --file-desc\n'\
-       '  * upload-issue: upload a file to the issue\n'\
-       '  ** required arguments:\n'\
-       '  *** --file-name\n'\
-       '  ** optional arguments:\n'\
-       '  *** --file-desc\n'\
-       '  * issue: create redmine issue\n'\
-       '  ** required arguments:\n'\
-       '  *** --tracker\n'\
-       '  *** --subject\n'\
-       '  *** --description\n'\
-       '  ** optional arguments:\n'\
-       '  *** --parent-issue\n'\
-       '  *** --file-name\n'\
-       '  *** --file-desc\n')
-        parser.add_argument('-p', '--project',
-                            help='name of the redmine project')
-        parser.add_argument('--login')
-        parser.add_argument('--password')
-        parser.add_argument('--file-name', action='append', default=[])
-        parser.add_argument('--file-desc', action='append', default=[])
-        parser.add_argument('--issue', type=int)
-        parser.add_argument('--description')
-        parser.add_argument('--subject')
-        parser.add_argument('--tracker', choices=cls.trackers.keys())
-        parser.add_argument('--parent-issue', type=int)
+
+        subparsers = parser.add_subparsers(dest='command')
+        subparser = subparsers.add_parser('upload',
+                                  description='upload a file to redmine project')
+        subparser.add_argument('url', help='url of the redmine server')
+        subparser.add_argument('project',
+                               help='name of the redmine project')
+        subparser.add_argument('--login')
+        subparser.add_argument('--password')
+        subparser.add_argument('file_name', nargs='+')
+        subparser.add_argument('--file-desc', nargs='+')
+
+        subparser = subparsers.add_parser('upload-issue',
+                                  description='upload a file to redmine issue')
+        subparser.add_argument('url', help='url of the redmine server')
+        subparser.add_argument('issue', type=int)
+        subparser.add_argument('--login')
+        subparser.add_argument('--password')
+        subparser.add_argument('file_name', nargs='+')
+        subparser.add_argument('--file-desc', nargs='+')
+
+        subparser = subparsers.add_parser('issue',
+                                  description='create redmine issue')
+        subparser.add_argument('url', help='url of the redmine server')
+        subparser.add_argument('project',
+                               help='name of the redmine project')
+        subparser.add_argument('tracker', choices=cls.trackers.keys())
+        subparser.add_argument('subject')
+        subparser.add_argument('description')
+        subparser.add_argument('--login')
+        subparser.add_argument('--password')
+        subparser.add_argument('--parent-issue', type=int)
+        subparser.add_argument('--file-name', nargs='+')
+        subparser.add_argument('--file-desc', nargs='+')
         return parser
 
     @staticmethod

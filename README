@@ -7,26 +7,59 @@ $ python src/redmine
 or as python module after installation
 $ python -m redmine
 
-redmine actions:
-* upload: upload a file to the project
-** required arguments:
-*** --file-name
-** optional arguments:
-*** --file-desc
+usage: redmine.py [-h] {upload,upload-issue,issue} ...
 
-* upload-issue: upload a file to the issue
-** required arguments:
-*** --file-name
-** optional arguments:
-*** --file-desc
+        redmine wrapper written in python with mechanize
+        
 
-* issue: create redmine issue
-** required arguments:
-*** --tracker
-*** --subject
-*** --description
-** optional arguments:
-*** --parent-issue
-*** --file-name
-*** --file-desc
+positional arguments:
+  {upload,upload-issue,issue}
 
+optional arguments:
+  -h, --help            show this help message and exit
+
+
+*issue*: create redmine issue
+
+positional arguments:
+  url                   url of the redmine server
+  project               name of the redmine project
+  {Support,Bug,Feature}
+  subject
+  description
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --login LOGIN
+  --password PASSWORD
+  --parent-issue PARENT_ISSUE
+  --file-name FILE_NAME [FILE_NAME ...]
+  --file-desc FILE_DESC [FILE_DESC ...]
+
+
+*upload*: upload a file to redmine project
+
+positional arguments:
+  url                   url of the redmine server
+  project               name of the redmine project
+  file_name
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --login LOGIN
+  --password PASSWORD
+  --file-desc FILE_DESC [FILE_DESC ...]
+
+
+*upload-issue*: upload a file to redmine issue
+
+positional arguments:
+  url                   url of the redmine server
+  issue
+  file_name
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --login LOGIN
+  --password PASSWORD
+  --file-desc FILE_DESC [FILE_DESC ...]
