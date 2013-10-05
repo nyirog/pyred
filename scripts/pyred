@@ -35,7 +35,8 @@ subparser.add_argument('project',
                        help='name of the redmine project')
 subparser.add_argument('tracker', choices=Redmine.trackers.keys())
 subparser.add_argument('subject')
-subparser.add_argument('description')
+subparser.add_argument('--description')
+subparser.add_argument('--desc-file')
 subparser.add_argument('--parent', type=int)
 subparser.add_argument('--file-name', nargs='+')
 subparser.add_argument('--file-desc', nargs='+')
@@ -45,7 +46,8 @@ subparser = subparsers.add_parser('wiki',
 subparser.add_argument('project',
                        help='name of the redmine project')
 subparser.add_argument('title')
-subparser.add_argument('description')
+subparser.add_argument('--description')
+subparser.add_argument('--desc-file')
 subparser.add_argument('--parent', default='Wiki')
 
 subparser = subparsers.add_parser('list-issue', description='list issue')
@@ -80,25 +82,16 @@ cfg.write(open(cfg_name, 'wb'))
 
 
 if args.command == 'upload':
-    assert args.project is not None, 'project has to be set'
-    assert args.file_name, 'file-name has to be set'
-
     file_descs = Redmine.fit_file_desc(args.file_desc, args.file_name)
     for file_name, file_desc in zip(args.file_name, file_descs):
         redmine.upload_project_file(args.project, file_name, file_desc)
 elif args.command == 'upload-issue':
-    assert args.issue is not None, 'issue has to be set'
-    assert args.file_name, 'file-name has to be set'
-
     file_descs = Redmine.fit_file_desc(args.file_desc, args.file_name)
     for file_name, file_desc in zip(args.file_name, file_descs):
         redmine.upload_issue_file(args.issue, file_name, file_desc)
 elif args.command == 'issue':
-    assert args.project is not None, 'project has to be set'
-    assert args.subject is not None, 'subject has to be set'
-    assert args.description is not None, 'description has to be set'
-    assert args.tracker is not None, 'tracker has to be set'
-
+    assert args.description is not None or args.desc_file is not None,\
+           'issue description has to be set'
     issue = redmine.create_issue(args.project, args.subject,
                                  args.description, args.tracker,
                                  args.parent)
@@ -107,17 +100,14 @@ elif args.command == 'issue':
         redmine.upload_issue_file(issue, file_name, file_desc)
     print issue
 elif args.command == 'wiki':
-    assert args.project is not None, 'project has to be set'
-    assert args.title is not None, 'wiki title has to be set'
-    assert args.description is not None, 'wiki description has to be set'
+    assert args.description is not None or args.desc_file is not None,\
+           'wiki description has to be set'
     redmine.create_wiki(args.project, args.title, args.description, args.parent)
 elif args.command == 'list-issue':
-    assert args.issue is not None, 'issue has to be set'
-    issue = redmine.list_issue(args.issue)
-    for part, data in issue.iteritems():
-        print '%s of %d issue' % (part, args.issue)
-        for link, title in data.iteritems():
-            print title, link
+    subtasks = redmine.get_subtasks(args.issue)
+    print 'Subtasks of %d issue' % args.issue
+    for link, title in subtasks.iteritems():
+        print title, link
 else:
     print >> sys.stderr, 'What should I do?'
 
