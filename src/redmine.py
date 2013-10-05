@@ -69,37 +69,31 @@ class Redmine(Browser):
                                 description="""
         redmine wrapper written in python with mechanize
         """)
+        parser.add_argument('--url', help='url of the redmine server')
+        parser.add_argument('--username')
+        parser.add_argument('--password')
 
         subparsers = parser.add_subparsers(dest='command')
         subparser = subparsers.add_parser('upload',
                                   description='upload a file to redmine project')
-        subparser.add_argument('url', help='url of the redmine server')
         subparser.add_argument('project',
                                help='name of the redmine project')
-        subparser.add_argument('--login')
-        subparser.add_argument('--password')
         subparser.add_argument('file_name', nargs='+')
         subparser.add_argument('--file-desc', nargs='+')
 
         subparser = subparsers.add_parser('upload-issue',
                                   description='upload a file to redmine issue')
-        subparser.add_argument('url', help='url of the redmine server')
         subparser.add_argument('issue', type=int)
-        subparser.add_argument('--login')
-        subparser.add_argument('--password')
         subparser.add_argument('file_name', nargs='+')
         subparser.add_argument('--file-desc', nargs='+')
 
         subparser = subparsers.add_parser('issue',
                                   description='create redmine issue')
-        subparser.add_argument('url', help='url of the redmine server')
         subparser.add_argument('project',
                                help='name of the redmine project')
         subparser.add_argument('tracker', choices=cls.trackers.keys())
         subparser.add_argument('subject')
         subparser.add_argument('description')
-        subparser.add_argument('--login')
-        subparser.add_argument('--password')
         subparser.add_argument('--parent-issue', type=int)
         subparser.add_argument('--file-name', nargs='+')
         subparser.add_argument('--file-desc', nargs='+')
@@ -108,52 +102,4 @@ class Redmine(Browser):
     @staticmethod
     def fit_file_desc(file_descs, file_names):
         return file_descs or ['' for name in file_names]
-
-
-if __name__ == '__main__':
-    import getpass
-
-    parser = Redmine.create_parser()
-    args = parser.parse_args()
-
-    if args.login is None:
-        login = getpass.getuser()
-        args.login = raw_input('login: [%s]' % login)
-        if not args.login:
-            args.login = login
-    if args.password is None:
-        args.password = getpass.getpass('password: ')
-
-
-    redmine = Redmine(args.url)
-    redmine.login(args.login, args.password)
-    if args.command == 'upload':
-        assert args.project is not None, 'project has to be set'
-        assert args.file_name, 'file-name has to be set'
-
-        file_descs = Redmine.fit_file_desc(args.file_desc, args.file_name)
-        for file_name, file_desc in zip(args.file_name, file_descs):
-            redmine.upload_project_file(args.project, file_name, file_desc)
-    elif args.command == 'upload-issue':
-        assert args.issue is not None, 'issue has to be set'
-        assert args.file_name, 'file-name has to be set'
-
-        file_descs = Redmine.fit_file_desc(args.file_desc, args.file_name)
-        for file_name, file_desc in zip(args.file_name, file_descs):
-            redmine.upload_issue_file(args.issue, file_name, file_desc)
-    elif args.command == 'issue':
-        assert args.project is not None, 'project has to be set'
-        assert args.subject is not None, 'subject has to be set'
-        assert args.description is not None, 'description has to be set'
-        assert args.tracker is not None, 'tracker has to be set'
-
-        issue = redmine.create_issue(args.project, args.subject,
-                                     args.description, args.tracker,
-                                     args.parent_issue)
-        file_descs = Redmine.fit_file_desc(args.file_desc, args.file_name)
-        for file_name, file_desc in zip(args.file_name, file_descs):
-            redmine.upload_issue_file(issue, file_name, file_desc)
-        print issue
-    else:
-        pass
 

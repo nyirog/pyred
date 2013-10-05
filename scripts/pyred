@@ -1,0 +1,67 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import getpass
+from ConfigParser import RawConfigParser
+
+from redmine import Redmine
+
+parser = Redmine.create_parser()
+args = parser.parse_args()
+
+cfg_name = os.path.expanduser('~/.%s.cfg' % os.path.basename(__file__))
+cfg = RawConfigParser()
+cfg.optionxform = str
+cfg.read(cfg_name)
+
+section = 'server'
+if args.url is not None:
+    url = cfg.set(section, 'url', args.url)
+assert cfg.has_option(section, 'url'), 'url should be set for redmine server'
+url = cfg.get(section, 'url')
+redmine = Redmine(url)
+
+if args.username is not None and args.password is not None:
+    cfg.set(section, 'username', args.username)
+    cfg.set(section, 'password', args.password)
+if cfg.has_option(section, 'username') and cfg.has_option(section, 'password'):
+    username = cfg.get(section, 'username')
+    password = cfg.get(section, 'password')
+    redmine.login(username, password)
+else:
+    print >> sys.stderr, 'No authentication has been set!'
+
+cfg.write(open(cfg_name, 'wb'))
+
+
+if args.command == 'upload':
+    assert args.project is not None, 'project has to be set'
+    assert args.file_name, 'file-name has to be set'
+
+    file_descs = Redmine.fit_file_desc(args.file_desc, args.file_name)
+    for file_name, file_desc in zip(args.file_name, file_descs):
+        redmine.upload_project_file(args.project, file_name, file_desc)
+elif args.command == 'upload-issue':
+    assert args.issue is not None, 'issue has to be set'
+    assert args.file_name, 'file-name has to be set'
+
+    file_descs = Redmine.fit_file_desc(args.file_desc, args.file_name)
+    for file_name, file_desc in zip(args.file_name, file_descs):
+        redmine.upload_issue_file(args.issue, file_name, file_desc)
+elif args.command == 'issue':
+    assert args.project is not None, 'project has to be set'
+    assert args.subject is not None, 'subject has to be set'
+    assert args.description is not None, 'description has to be set'
+    assert args.tracker is not None, 'tracker has to be set'
+
+    issue = redmine.create_issue(args.project, args.subject,
+                                 args.description, args.tracker,
+                                 args.parent_issue)
+    file_descs = Redmine.fit_file_desc(args.file_desc, args.file_name)
+    for file_name, file_desc in zip(args.file_name, file_descs):
+        redmine.upload_issue_file(issue, file_name, file_desc)
+    print issue
+else:
+    print >> sys.stderr, 'What should I do?'
+
