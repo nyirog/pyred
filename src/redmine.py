@@ -1,5 +1,4 @@
 import re
-from argparse import ArgumentParser, RawTextHelpFormatter
 
 from mechanize import Browser, urlopen
 
@@ -41,10 +40,16 @@ class Redmine(Browser):
         return
 
     def _find_form_by_control_names(self, control_names):
+        form_controls = []
         for form in self.forms():
             names = control_names - set(ctrl.name for ctrl in form.controls)
             if not names: return form
-        raise ValueError('Invaliad forms no %s action' % control_name)
+            form_controls.append(form.controls)
+        raise ValueError(  'Invaliad forms no %s action in\n%s'
+                         % (', '.join(control_names),
+                            '\n'.join('%s<%s>' % (ctrl.name, ctrl.type)
+                                      for controls in form_controls
+                                      for ctrl in controls)))
 
     def create_issue(self, project, subject, description, tracker,
                      parent_issue):
@@ -63,41 +68,21 @@ class Redmine(Browser):
         issue = int(match.group(1))
         return issue
 
-    @classmethod
-    def create_parser(cls):
-        parser = ArgumentParser(formatter_class=RawTextHelpFormatter,
-                                description="""
-        redmine wrapper written in python with mechanize
-        """)
-        parser.add_argument('--url', help='url of the redmine server')
-        parser.add_argument('--username')
-        parser.add_argument('--password')
-
-        subparsers = parser.add_subparsers(dest='command')
-        subparser = subparsers.add_parser('upload',
-                                  description='upload a file to redmine project')
-        subparser.add_argument('project',
-                               help='name of the redmine project')
-        subparser.add_argument('file_name', nargs='+')
-        subparser.add_argument('--file-desc', nargs='+')
-
-        subparser = subparsers.add_parser('upload-issue',
-                                  description='upload a file to redmine issue')
-        subparser.add_argument('issue', type=int)
-        subparser.add_argument('file_name', nargs='+')
-        subparser.add_argument('--file-desc', nargs='+')
-
-        subparser = subparsers.add_parser('issue',
-                                  description='create redmine issue')
-        subparser.add_argument('project',
-                               help='name of the redmine project')
-        subparser.add_argument('tracker', choices=cls.trackers.keys())
-        subparser.add_argument('subject')
-        subparser.add_argument('description')
-        subparser.add_argument('--parent-issue', type=int)
-        subparser.add_argument('--file-name', nargs='+')
-        subparser.add_argument('--file-desc', nargs='+')
-        return parser
+    def create_wiki(self, project, title, description, parent_wiki):
+        title = title.title()
+        title_url = title.replace(' ', '_')
+        url =  '%s/projects/%s/wiki/%s?parent=%s'\
+             % (self._url, project, title_url, parent_wiki)
+        resp = self.open(url)
+        try:
+            self.form = self._find_form_by_control_names({'content[text]'})
+        except ValueError: # wiki page was already existed
+            url = '%s/projects/%s/wiki/%s/edit' % (self._url, project, title_url)
+            resp = self.open(url)
+            self.form = self._find_form_by_control_names({'content[text]'})
+        self['content[text]'] = "h1. %s\n\n%s" % (title, description)
+        resp = self.submit()
+        return
 
     @staticmethod
     def fit_file_desc(file_descs, file_names):
