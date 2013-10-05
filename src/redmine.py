@@ -1,4 +1,5 @@
 import re
+from HTMLParser import HTMLParser
 
 from mechanize import Browser, urlopen
 
@@ -87,10 +88,40 @@ class Redmine(Browser):
     def get_subtasks(self, issue):
         url = '%s/issues/%d' % (self._url, issue)
         page = self.open(url).read()
-        match = re.search('<p><strong>Subtasks</strong></p>\\s*<form>(.+)</form>', page)
-        form = match.group(1)
-        subtasks = dict(re.findall('<a href="(/redmine/issues/\\d+)"[^>]+">[^<]+</a>:\\s+([^<]+)', form))
-        return subtasks
+        parser = self.SubtaskParser()
+        parser.feed(page)
+        return parser.links
+
+    class SubtaskParser(HTMLParser):
+        def __init__(self):
+            HTMLParser.__init__(self)
+
+            self.in_strong = False
+            self.in_subtasks = False
+            self.in_a = False
+            self.attrs = {}
+            self.link = ''
+            self.links = {}
+            return
+
+        def handle_starttag(self, tag, attrs):
+            self.in_strong = tag == 'strong'
+            self.in_a = tag == 'a'
+            self.tag = tag
+            self.attrs = dict(attrs)
+            return
+
+        def handle_data(self, data):
+            if self.in_strong and data == 'Subtasks': self.in_subtasks = True
+            if self.in_subtasks and self.tag == 'a' and not self.in_a:
+                self.links[self.attrs['href']] = data
+            return
+
+        def handle_endtag(self, tag):
+            if tag == 'strong': self.in_strong = False
+            if tag == 'a': self.in_a = False
+            if self.in_subtasks and tag == 'form': self.in_subtasks = False
+            return
 
     @staticmethod
     def fit_file_desc(file_descs, file_names):
