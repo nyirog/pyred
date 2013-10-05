@@ -84,6 +84,14 @@ class Redmine(Browser):
         resp = self.submit()
         return
 
+    def list_issue(self, issue):
+        url = '%s/issues/%d' % (self._url, issue)
+        page = self.open(url).read()
+        match = re.search('<p><strong>Subtasks</strong></p>\\s*<form>(.+)</form>', page)
+        form = match.group(1)
+        subtasks = dict(re.findall('<a href="(/redmine/issues/\\d+)"[^>]+">[^<]+</a>:\\s+([^<]+)', form))
+        return {'subtasks': subtasks}
+
     @staticmethod
     def fit_file_desc(file_descs, file_names):
         return file_descs or ['' for name in file_names]

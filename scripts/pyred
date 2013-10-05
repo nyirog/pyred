@@ -48,6 +48,10 @@ subparser.add_argument('title')
 subparser.add_argument('description')
 subparser.add_argument('--parent', default='Wiki')
 
+subparser = subparsers.add_parser('list-issue', description='list issue')
+subparser.add_argument('issue', type=int)
+
+
 args = parser.parse_args()
 
 cfg_name = os.path.expanduser('~/.%s.cfg' % os.path.basename(__file__))
@@ -107,6 +111,13 @@ elif args.command == 'wiki':
     assert args.title is not None, 'wiki title has to be set'
     assert args.description is not None, 'wiki description has to be set'
     redmine.create_wiki(args.project, args.title, args.description, args.parent)
+elif args.command == 'list-issue':
+    assert args.issue is not None, 'issue has to be set'
+    issue = redmine.list_issue(args.issue)
+    for part, data in issue.iteritems():
+        print '%s of %d issue' % (part, args.issue)
+        for link, title in data.iteritems():
+            print title, link
 else:
     print >> sys.stderr, 'What should I do?'
 
