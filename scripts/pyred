@@ -53,6 +53,14 @@ subparser.add_argument('--parent', default='Wiki')
 subparser = subparsers.add_parser('list-issue', description='list issue')
 subparser.add_argument('issue', type=int)
 
+def get_desc(args):
+    if args.description is not None:
+        desc = args.description
+    elif args.desc_file is not None and os.path.isfile(args.desc_file):
+        desc = open(args.desc_file).read()
+    else:
+        raise AssertionError('description has to be set')
+    return desc
 
 args = parser.parse_args()
 
@@ -80,7 +88,6 @@ else:
 
 cfg.write(open(cfg_name, 'wb'))
 
-
 if args.command == 'upload':
     file_descs = Redmine.fit_file_desc(args.file_desc, args.file_name)
     for file_name, file_desc in zip(args.file_name, file_descs):
@@ -90,19 +97,14 @@ elif args.command == 'upload-issue':
     for file_name, file_desc in zip(args.file_name, file_descs):
         redmine.upload_issue_file(args.issue, file_name, file_desc)
 elif args.command == 'issue':
-    assert args.description is not None or args.desc_file is not None,\
-           'issue description has to be set'
-    issue = redmine.create_issue(args.project, args.subject,
-                                 args.description, args.tracker,
-                                 args.parent)
+    issue = redmine.create_issue(args.project, args.subject, get_desc(args),
+                                 args.tracker, args.parent)
     file_descs = Redmine.fit_file_desc(args.file_desc, args.file_name)
     for file_name, file_desc in zip(args.file_name, file_descs):
         redmine.upload_issue_file(issue, file_name, file_desc)
     print issue
 elif args.command == 'wiki':
-    assert args.description is not None or args.desc_file is not None,\
-           'wiki description has to be set'
-    redmine.create_wiki(args.project, args.title, args.description, args.parent)
+    redmine.create_wiki(args.project, args.title, get_desc(args), args.parent)
 elif args.command == 'list-issue':
     subtasks = redmine.get_subtasks(args.issue)
     print 'Subtasks of %d issue' % args.issue
