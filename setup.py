@@ -20,7 +20,7 @@ setup(
     name='pyred',
     version='1.0.0',
     description='redmine wrapper with mechanize',
-    long_description=open('README').read(),
+    long_description=open('README.rst').read(),
     author=u'Nyirő Gergő',
     author_email='gergo.nyiro@gmail.com',
     url='https://github.com/nyirog/pyred',
