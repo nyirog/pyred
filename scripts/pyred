@@ -112,8 +112,8 @@ elif args.command == 'upload-issue':
     for file_name, file_desc in zip(args.file_name, file_descs):
         redmine.upload_issue_file(args.issue, file_name, file_desc)
 elif args.command == 'issue':
-    issue = redmine.create_issue(args.project, args.subject, get_desc(args),
-                                 args.tracker, args.parent, args.watcher)
+    issue = redmine.create_issue(args.project, args.tracker, args.subject,
+                                 get_desc(args), args.parent, args.watcher)
     file_descs = Redmine.fit_file_desc(args.file_desc, args.file_name)
     for file_name, file_desc in zip(args.file_name, file_descs):
         redmine.upload_issue_file(issue, file_name, file_desc)

@@ -1,0 +1,4 @@
+pyred uses standard python distutils package distribution script setup.py.
+For install run install command of setup.py inside of the project directory.
+
+$ sudo python setup.py install

@@ -52,8 +52,9 @@ class Redmine(Browser):
                                       for controls in form_controls
                                       for ctrl in controls)))
 
-    def create_issue(self, project, subject, description, tracker,
-                     parent_issue, watchers):
+    def create_issue(self, project, tracker, subject, description,
+                     parent_issue=None, watchers=None):
+        watchers = watchers or []
         url = '%s/projects/%s/issues/new' % (self._url, project)
         resp = self.open(url)
         self.form = self._find_form_by_control_names({'issue[tracker_id]', 'issue[watcher_user_ids][]'})
@@ -116,7 +117,7 @@ class Redmine(Browser):
         def handle_data(self, data):
             if self.in_strong and data == 'Subtasks': self.in_subtasks = True
             if self.in_subtasks and self.tag == 'a' and not self.in_a:
-                self.links[self.attrs['href']] = data
+                self.links[self.attrs['href']] = data.lstrip(':').lstrip()
             return
 
         def handle_endtag(self, tag):

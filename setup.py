@@ -14,11 +14,11 @@ for section in 'server', 'users', 'trackers':
 fp = open(cfg_name, 'wb')
 cfg.write(fp)
 fp.close()
-
+os.chmod(cfg_name, 0600)
 
 setup(
     name='pyred',
-    version='0.1.0',
+    version='1.0.0',
     description='redmine wrapper with mechanize',
     long_description=open('README').read(),
     author=u'Nyirő Gergő',
