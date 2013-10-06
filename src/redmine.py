@@ -5,12 +5,12 @@ from mechanize import Browser, urlopen
 
 class Redmine(Browser):
     trackers = {'Bug': 1, 'Feature': 2, 'Support': 3}
-    def __init__(self, url, trackers=None):
+    users = {}
+    def __init__(self, url):
         Browser.__init__(self)
         self.addheaders = [('User-agent', 'Firefox')]
 
         self._url = url
-        self.trackers = trackers or Redmine.trackers
         return
 
     def login(self, login, password):
@@ -48,20 +48,22 @@ class Redmine(Browser):
             form_controls.append(form.controls)
         raise ValueError(  'Invaliad forms no %s action in\n%s'
                          % (', '.join(control_names),
-                            '\n'.join('%s<%s>' % (ctrl.name, ctrl.type)
+                            '\n'.join('%s' % (ctrl)
                                       for controls in form_controls
                                       for ctrl in controls)))
 
     def create_issue(self, project, subject, description, tracker,
-                     parent_issue):
+                     parent_issue, watchers):
         url = '%s/projects/%s/issues/new' % (self._url, project)
         resp = self.open(url)
-        self.form = self._find_form_by_control_names({'issue[tracker_id]'})
+        self.form = self._find_form_by_control_names({'issue[tracker_id]', 'issue[watcher_user_ids][]'})
         self['issue[subject]'] = subject
         self['issue[description]'] = description
         self.form['issue[tracker_id]'] = [str(self.trackers[tracker])]
         if isinstance(parent_issue, int):
             self['issue[parent_issue_id]'] = str(parent_issue)
+        self.form['issue[watcher_user_ids][]'] = [str(self.users[user])
+                                                  for user in watchers]
 
         resp = self.submit()
         match = re.search('<title>%s\\s+#(\\d+):.+</title>' % tracker,

@@ -2,13 +2,19 @@
 import os
 import pwd
 import grp
-
 import getpass
-
+from ConfigParser import RawConfigParser
 from distutils.core import setup
 
 cfg_name = '.pyred.cfg'
-open(cfg_name, 'w').write('[server]')
+cfg = RawConfigParser()
+cfg.optionxform = str
+for section in 'server', 'users', 'trackers':
+    cfg.add_section(section)
+fp = open(cfg_name, 'wb')
+cfg.write(fp)
+fp.close()
+
 
 setup(
     name='pyred',

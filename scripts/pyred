@@ -14,20 +14,23 @@ redmine wrapper written in python with mechanize
 parser.add_argument('--url', help='url of the redmine server')
 parser.add_argument('--username')
 parser.add_argument('--password')
+parser.add_argument('--tracker-id', nargs=2, action='append',
+                    default=[('Bug', '1'), ('Feature', '2'), ('Support', '3'),])
+parser.add_argument('--user-id', nargs=2, action='append', default=[])
 
 subparsers = parser.add_subparsers(dest='command')
 subparser = subparsers.add_parser('upload',
                           description='upload a file to redmine project')
 subparser.add_argument('project',
                        help='name of the redmine project')
-subparser.add_argument('file_name', nargs='+')
-subparser.add_argument('--file-desc', nargs='+')
+subparser.add_argument('file_name', nargs='+', default=[])
+subparser.add_argument('--file-desc', nargs='+', default=[])
 
 subparser = subparsers.add_parser('upload-issue',
                           description='upload a file to redmine issue')
 subparser.add_argument('issue', type=int)
-subparser.add_argument('file_name', nargs='+')
-subparser.add_argument('--file-desc', nargs='+')
+subparser.add_argument('file_name', nargs='+', default=[])
+subparser.add_argument('--file-desc', nargs='+', default=[])
 
 subparser = subparsers.add_parser('issue',
                           description='create redmine issue')
@@ -38,8 +41,9 @@ subparser.add_argument('subject')
 subparser.add_argument('--description')
 subparser.add_argument('--desc-file')
 subparser.add_argument('--parent', type=int)
-subparser.add_argument('--file-name', nargs='+')
-subparser.add_argument('--file-desc', nargs='+')
+subparser.add_argument('--file-name', nargs='+', default=[])
+subparser.add_argument('--file-desc', nargs='+', default=[])
+subparser.add_argument('--watcher', nargs='+', default=[])
 
 subparser = subparsers.add_parser('wiki',
                           description='create wiki page')
@@ -69,12 +73,23 @@ cfg = RawConfigParser()
 cfg.optionxform = str
 cfg.read(cfg_name)
 
+for tracker, tracker_id in args.tracker_id:
+    cfg.set('trackers', tracker, tracker_id)
+for user, user_id in args.user_id:
+    cfg.set('users', user, user_id)
+
+class MyRedmine(Redmine):
+    users = dict((user, cfg.getint('users', user))
+                 for user in cfg.options('users'))
+    trackers = dict((tracker, cfg.getint('trackers', tracker))
+                    for tracker in cfg.options('trackers'))
+
 section = 'server'
 if args.url is not None:
     url = cfg.set(section, 'url', args.url)
 assert cfg.has_option(section, 'url'), 'url should be set for redmine server'
 url = cfg.get(section, 'url')
-redmine = Redmine(url)
+redmine = MyRedmine(url)
 
 if args.username is not None and args.password is not None:
     cfg.set(section, 'username', args.username)
@@ -98,7 +113,7 @@ elif args.command == 'upload-issue':
         redmine.upload_issue_file(args.issue, file_name, file_desc)
 elif args.command == 'issue':
     issue = redmine.create_issue(args.project, args.subject, get_desc(args),
-                                 args.tracker, args.parent)
+                                 args.tracker, args.parent, args.watcher)
     file_descs = Redmine.fit_file_desc(args.file_desc, args.file_name)
     for file_name, file_desc in zip(args.file_name, file_descs):
         redmine.upload_issue_file(issue, file_name, file_desc)
